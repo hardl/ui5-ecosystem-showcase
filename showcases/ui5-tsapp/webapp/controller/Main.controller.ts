@@ -8,7 +8,8 @@ import { Chart } from "chart.js";
 import capitalize from "ui5/ecosystem/demo/tslib/util/capitalize";
 import camelizeSomething from "../utils/camelizeSomething";
 import WebComponent from "sap/ui/core/webc/WebComponent";
-import LuigiEvents, { LuigiContainer } from "@luigi-project/container";
+import { LuigiContainer } from "@luigi-project/container";
+import { LuigiEvent, LuigiEvents } from "@luigi-project/container/constants/events";
 
 function limitString(string = "", limit = 40) {
 	return string.substring(0, limit);
@@ -67,9 +68,22 @@ export default class Main extends Controller {
 		// TODO: add and remove event handler
 		const oLuigi = this.byId("luigi") as WebComponent;
 		console.log(`The LuigiContainer as named export is no Web Component!`, LuigiContainer);
-		oLuigi.attachBrowserEvent(LuigiEvents.ALERT_REQUEST, (event: Event) => {
-			const detail = (event as CustomEvent).detail as { text: string };
-			MessageBox.show(`Hello World, ${detail.text}!`);
+		const realLuigi = oLuigi.getDomRef() as LuigiContainer;
+
+		oLuigi.attachBrowserEvent(LuigiEvents.ALERT_REQUEST, (event: { originalEvent: LuigiEvent }) => {
+			const payload = event.originalEvent.payload as { text: string };
+			MessageBox.show(`Hello World, ${payload.text}!`);
+		});
+
+		oLuigi.attachBrowserEvent(LuigiEvents.SHOW_CONFIRMATION_MODAL_REQUEST, (event: { originalEvent: LuigiEvent }) => {
+			const payload = event.originalEvent.payload as { body: string; header: string; buttonConfirm: string; buttonDismiss: string };
+			MessageBox.confirm(payload.body, {
+				title: payload.header,
+				onClose: (oAction: string) => {
+					realLuigi.notifyConfirmationModalClosed(oAction === payload.buttonConfirm);
+				},
+				actions: [payload.buttonConfirm, payload.buttonDismiss],
+			});
 		});
 	}
 
