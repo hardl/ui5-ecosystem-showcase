@@ -60,6 +60,13 @@ import("moment")
 		console.log("[DYNAMIC IMPORT] Failed to load Moment.js from application runtime environment!", ex);
 	});
 
+class LuigiEventPayload {
+	[key: string]: string | object | undefined;
+
+	public static getPayload(event: Event): LuigiEventPayload {
+		return (event as LuigiEvent).payload as LuigiEventPayload;
+	}
+}
 /**
  * @namespace ui5.ecosystem.demo.tsapp.controller
  */
@@ -68,19 +75,32 @@ export default class Main extends Controller {
 		// TODO: add and remove event handler
 		const oLuigi = this.byId("luigi") as WebComponent;
 		console.log(`The LuigiContainer as named export is no Web Component!`, LuigiContainer);
-		const realLuigi = oLuigi.getDomRef() as LuigiContainer;
+		// const realLuigi = oLuigi.getDomRef() as LuigiContainer;
 
+		/////////////////////////////////////////
+		// // v1
+		// oLuigi.attachBrowserEvent(LuigiEvents.ALERT_REQUEST, (event: { originalEvent: LuigiEvent }) => {
+		// 	const payload = event.originalEvent.payload as { text: string };
+		// 	MessageBox.show(`Hello World, ${payload.text}!`);
+		// });
+		// v2
 		oLuigi.attachBrowserEvent(LuigiEvents.ALERT_REQUEST, (event: { originalEvent: LuigiEvent }) => {
-			const payload = event.originalEvent.payload as { text: string };
-			MessageBox.show(`Hello World, ${payload.text}!`);
+			const payload = LuigiEventPayload.getPayload(event.originalEvent);
+			MessageBox.show(`Hello World, ${payload.text as string}!`);
 		});
+		// // v3
+		// realLuigi.addEventListener(LuigiEvents.ALERT_REQUEST, (event) => {
+		// 	const payload = LuigiEventPayload.getPayload(event);
+		// 	MessageBox.show(`Hello World, ${payload.text as string}!`);
+		// });
+		/////////////////////////////////////////
 
 		oLuigi.attachBrowserEvent(LuigiEvents.SHOW_CONFIRMATION_MODAL_REQUEST, (event: { originalEvent: LuigiEvent }) => {
 			const payload = event.originalEvent.payload as { body: string; header: string; buttonConfirm: string; buttonDismiss: string };
 			MessageBox.confirm(payload.body, {
 				title: payload.header,
 				onClose: (oAction: string) => {
-					realLuigi.notifyConfirmationModalClosed(oAction === payload.buttonConfirm);
+					(oLuigi.getDomRef() as LuigiContainer).notifyConfirmationModalClosed(oAction === payload.buttonConfirm);
 				},
 				actions: [payload.buttonConfirm, payload.buttonDismiss],
 			});
